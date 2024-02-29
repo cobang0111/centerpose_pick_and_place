@@ -17,6 +17,8 @@ This repository explain the Universal Robot's pick and place based on `MoveGroup
 Tested on isaac-ros docker container from 
 Hardware UR3e - MKS42c Motor Driver - NEMA17 Electric Step Motor Gripper 
 
+<br>
+
 <img src="https://github.com/cobang0111/centerpose_pick_and_place/assets/97373900/78fa09f0-9b75-409e-ae5f-51c75859d1cc" width="480">
 
 <br>
@@ -306,6 +308,8 @@ cd /workspace/isaac_ros-dev
 
 ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=ur3e launch_rviz:=true robot_ip:=192.168.1.101 reverse_ip:=192.168.1.102
 ```
+
+<br>
 
 7th terminal (Activating Shoe Organization)
 

@@ -209,7 +209,7 @@ int main(int argc, char * argv[])
   double rotate, x, y, height;
   double box_center_x, box_center_y, box_center_z;
   double box_orientation_x, box_orientation_y, box_orientation_z, box_orientation_w;
-  bool non_detected = true;
+  int detected = 0;
 
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions node_options;
@@ -291,7 +291,7 @@ int main(int argc, char * argv[])
 
   // Pregrasp - Move to Picking Point
 
-  for(int i = 0; i < 4; i++){
+  for(int i = 0; i < 2; i++){
 
     if (init){
         RCLCPP_INFO(LOGGER, "Pregrasp Position");
@@ -320,7 +320,7 @@ int main(int argc, char * argv[])
             target_pose.position.y = 0.300;  // Y 좌표
             target_pose.position.z = 0.400;  // Z 좌표
         }
-
+ 
         waypoint1.push_back(target_pose); // Push target position
 
         moveit_msgs::msg::RobotTrajectory trajectory1;
@@ -337,7 +337,7 @@ int main(int argc, char * argv[])
 
     //centerpose node subscription
     auto detection_info_subscriber = move_group_node->create_subscription<vision_msgs::msg::Detection3DArray>(
-        "/centerpose/detections", 10, [&LOGGER, &box_center_x, &box_center_y, &box_center_z, &box_orientation_x, &box_orientation_y, &box_orientation_z, &box_orientation_w, &non_detected](const vision_msgs::msg::Detection3DArray::SharedPtr msg) {
+        "/centerpose/detections", 10, [&LOGGER, &box_center_x, &box_center_y, &box_center_z, &box_orientation_x, &box_orientation_y, &box_orientation_z, &box_orientation_w, &detected](const vision_msgs::msg::Detection3DArray::SharedPtr msg) {
         if (!msg->detections.empty()) {
 
             box_center_x = msg->detections[0].bbox.center.position.x / 10;
@@ -347,16 +347,17 @@ int main(int argc, char * argv[])
             box_orientation_y = msg->detections[0].bbox.center.orientation.y;
             box_orientation_z = msg->detections[0].bbox.center.orientation.z;
             box_orientation_w = msg->detections[0].bbox.center.orientation.w;
-            non_detected = false;
+            detected++;
+            std::cout << detected << endl;
         }
         else {
-            non_detected = true;
+            detected = 0;
         }
         });
 
     while (step1) {
 
-        if (!non_detected){
+        if (detected >= 30){
             geometry_msgs::msg::PoseStamped current_pose = move_group_arm.getCurrentPose(CAMERA_LINK);
             RCLCPP_INFO(move_group_node->get_logger(), "Camera Position: (%.6f, %.6f, %.6f)",
                         current_pose.pose.position.x, current_pose.pose.position.y, current_pose.pose.position.z);
@@ -384,11 +385,11 @@ int main(int argc, char * argv[])
             std::vector<geometry_msgs::msg::Pose> waypoint2;
 
             // Camera 보정 ( D435 카메라 중심과 Color 카메라의 위치가 일치하지 않음 )
-            if (object_position_camera[0] >= 0.1) object_position_camera[0] *= 0.7;
+            if (object_position_camera[0] >= 0.1) object_position_camera[0] *= 0.6;
             else if (object_position_camera[0] >= 0.070) object_position_camera[0] -= 0.070;
             else if (object_position_camera[0] >= 0.035) object_position_camera[0] -= 0.035;
             else if (object_position_camera[0] > 0) object_position_camera[0] = 0.000;
-            else if (object_position_camera[0] <= -0.1) object_position_camera[0] *= 0.9;
+            else if (object_position_camera[0] <= -0.1) object_position_camera[0] *= 0.8;
             //else if (object_position_camera[0] < 0) object_position_camera[0] = 0.000;
 
             if (abs(object_position_camera[1]) >= 0.1) object_position_camera[1] *= 0.8;
@@ -419,7 +420,7 @@ int main(int argc, char * argv[])
 
             rclcpp::sleep_for(std::chrono::seconds(5));
             
-            non_detected = true;
+            detected = 0;
             step1 = false;
             step2 = true;
             break;
@@ -428,7 +429,7 @@ int main(int argc, char * argv[])
         
     while (step2) {
 
-        if ((box_center_x < -0.025) && (box_center_x > -0.035) && (box_center_y < -0.016) && (box_center_y > -0.020)){
+        if ((box_center_x < -0.020) && (box_center_x > -0.024) && (box_center_y < -0.016) && (box_center_y > -0.020)){
             step2 = false;
             break;
         }
@@ -440,8 +441,8 @@ int main(int argc, char * argv[])
         std::vector<geometry_msgs::msg::Pose> waypoint3;
 
         
-        if ((box_center_x > -0.025) || (box_center_x < -0.035)){
-            x = (box_center_x + 0.030) * 0.1;
+        if ((box_center_x > -0.020) || (box_center_x < -0.024)){
+            x = (box_center_x + 0.022) * 0.1;
         }
 
         if ((box_center_y > -0.016) || (box_center_y < -0.020)){
@@ -530,10 +531,17 @@ int main(int argc, char * argv[])
     target_pose.orientation = ros_orientation;
 
     if (i%2 == 0){
+        // Set Target Position
+        orientation.setRPY(0, -PI, 1.25*PI); // Set Rotation Roll Pitch Yaw
+        ros_orientation = tf2::toMsg(orientation);  // tf2 Quaternion -> ROS msg
+        target_pose.orientation = ros_orientation;
         target_pose.position.y = 0.010;  // Y 좌표
     }
     else {
-        target_pose.position.y = 0.100;  // Y 좌표
+        orientation.setRPY(0, -PI, 1.19*PI); // Set Rotation Roll Pitch Yaw
+        ros_orientation = tf2::toMsg(orientation);  // tf2 Quaternion -> ROS msg
+        target_pose.orientation = ros_orientation;
+        target_pose.position.y = 0.105;  // Y 좌표
     }
     target_pose.position.x = -0.460; // X 좌표
     target_pose.position.z = 0.280;  // Z 좌표

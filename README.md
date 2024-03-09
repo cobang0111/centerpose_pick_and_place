@@ -1,6 +1,6 @@
 # Universal Robot Shoe Organization on ROS2 MoveIt based on Object Pose Estimation (CenterPose) 
 ## ✨Summary
-This repository explain the Universal Robot's pick and place based on `MoveGroupInterface` (cpp) 
+This repository about Universal Robot's shoe organization based on categorized 3D Object Pose Estimation Algorithm : CenterPose
 <br>
 <br>
 [Youtube Shorts Video](https://youtube.com/shorts/Ih1Q0JDabwE)
